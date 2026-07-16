@@ -37,7 +37,7 @@ crons = ["*/20 * * * *"]
 [[d1_databases]]
 binding = "DB"
 database_name = "rin"
-database_id = "8178e79e-5d95-4b8f-8d6c-0b2365319255"
+# database_id = "8178e79e-5d95-4b8f-8d6c-0b2365319255"
     
 
 [ai]
