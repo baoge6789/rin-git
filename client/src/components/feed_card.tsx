@@ -13,11 +13,10 @@ function FeedCardImage({ src, variant }: { src: string; variant: FeedCardVariant
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const { src: cleanSrc, blurhash, width, height } = parseImageUrlMetadata(src);
     const { failed, imageRef, loaded, onError, onLoad } = useImageLoadState(cleanSrc);
-    const aspectRatio = width && height ? `${width} / ${height}` : "16 / 9";
     const imageFrameClass =
         variant === "editorial"
-            ? "relative flex max-h-80 w-full flex-row items-center overflow-hidden rounded-[20px]"
-            : "relative mb-2 flex max-h-80 w-full flex-row items-center overflow-hidden rounded-xl";
+            ? "relative flex-shrink-0 w-32 h-24 overflow-hidden rounded-[20px]"
+            : "relative flex-shrink-0 w-32 h-24 overflow-hidden rounded-xl";
 
     useEffect(() => {
         if (!blurhash || !canvasRef.current) {
@@ -31,15 +30,12 @@ function FeedCardImage({ src, variant }: { src: string; variant: FeedCardVariant
     }, [blurhash]);
 
     return (
-        <div
-            className={imageFrameClass}
-            style={{ aspectRatio: aspectRatio || '16 / 9' }}
-        >
+        <div className={imageFrameClass}>
             {blurhash && !loaded ? (
                 <canvas
                     ref={canvasRef}
                     aria-hidden="true"
-                    className="absolute inset-0 h-full w-full scale-110 object-cover blur-sm"
+                    className="absolute inset-0 h-full w-full scale-110 object-cover"
                 />
             ) : null}
             <img
@@ -50,7 +46,7 @@ function FeedCardImage({ src, variant }: { src: string; variant: FeedCardVariant
                 height={height}
                 onLoad={onLoad}
                 onError={onError}
-                className={`absolute inset-0 h-full w-full object-cover object-center hover:scale-105 translation duration-300 ${blurhash && (!loaded || failed) ? "opacity-0" : "opacity-100"
+                className={`absolute inset-0 h-full w-full object-cover object-center ${blurhash && (!loaded || failed) ? "opacity-0" : "opacity-100"
                     }`}
             />
         </div>
@@ -67,7 +63,7 @@ const FEED_CARD_STYLES: Record<
     }
 > = {
     default: {
-        card: "my-2 inline-block w-full break-inside-avoid rounded-2xl bg-w p-6 duration-300 bg-button",
+        card: "my-2 inline-block w-full break-inside-avoid rounded-2xl bg-w p-4 duration-300 bg-button",
         imageWrap: "",
         meta: "text-gray-400 text-sm",
         title: "text-xl font-bold text-gray-700 dark:text-white text-pretty overflow-hidden",
@@ -87,53 +83,68 @@ export type FeedCardProps = {
     listed?: number;
     top?: number;
     title: string;
-    hashtags?: { id: number, name: string }[];
+    hashtags?: { id: number; name: string }[];
     createdAt: Date;
     updatedAt: Date;
     preview?: boolean;
     variant?: FeedCardVariant;
 };
 
-export function FeedCard({ id, title, avatar, draft, listed, top, hashtags, createdAt, updatedAt, preview = false, variant }: FeedCardProps) {
+export function FeedCard({
+    id,
+    title,
+    avatar,
+    draft,
+    listed,
+    top,
+    hashtags,
+    createdAt,
+    updatedAt,
+    preview = false,
+    variant,
+}: FeedCardProps) {
     const { t } = useTranslation();
     const siteConfig = useSiteConfig();
     const safeHashtags = Array.isArray(hashtags) ? hashtags : [];
     const activeVariant = normalizeFeedCardVariant(variant ?? siteConfig.feedCardVariant);
     const styles = FEED_CARD_STYLES[activeVariant];
-    const body = (
-        <div className={styles.card}>
+
+    const cardContent = (
+        <div className="flex gap-4 items-start">
             {avatar ? (
-                <div className={styles.imageWrap}>
+                <div className="flex-shrink-0">
                     <FeedCardImage src={avatar} variant={activeVariant} />
                 </div>
             ) : null}
-            <div className={activeVariant === "editorial" ? "px-2 pb-2" : ""}>
+            <div className="flex-1 min-w-0">
                 <h1 className={styles.title}>{title}</h1>
                 <p className={`space-x-2 ${styles.meta}`}>
                     <span title={new Date(createdAt).toLocaleString()}>
-                        {createdAt === updatedAt ? timeago(createdAt) : t('feed_card.published$time', { time: timeago(createdAt) })}
+                        {timeago(createdAt)}
                     </span>
-                    {createdAt !== updatedAt &&
+                    {createdAt !== updatedAt && (
                         <span title={new Date(updatedAt).toLocaleString()}>
-                            {t('feed_card.updated$time', { time: timeago(updatedAt) })}
+                            {t("feed_card.updated$time", { time: timeago(updatedAt) })}
                         </span>
-                    }
+                    )}
                 </p>
-                <p className={`space-x-2 ${styles.meta} ${activeVariant === "editorial" ? "mt-2" : ""}`}>
+                <p className={`space-x-2 ${styles.meta}`}>
                     {draft === 1 && <span>{t("draft")}</span>}
                     {listed === 0 && <span>{t("unlisted")}</span>}
-                    {top === 1 && <span className="text-theme">{t('article.top.title')}</span>}
+                    {top === 1 && <span className="text-theme">{t("article.top.title")}</span>}
                 </p>
-                {safeHashtags.length > 0 &&
-                    <div className={`flex flex-row flex-wrap justify-start gap-2 ${activeVariant === "editorial" ? "mt-4" : "mt-2 gap-x-2"}`}>
+                {safeHashtags.length > 0 && (
+                    <div className="flex flex-row flex-wrap justify-start gap-2 mt-2">
                         {safeHashtags.map(({ name }, index) => (
                             <HashTag key={index} name={name} />
                         ))}
                     </div>
-                }
+                )}
             </div>
         </div>
     );
+
+    const body = <div className={styles.card}>{cardContent}</div>;
 
     return preview ? body : <Link href={`/feed/${id}`} target="_blank" className="block w-full">{body}</Link>;
 }
